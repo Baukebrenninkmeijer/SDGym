@@ -1,9 +1,12 @@
+from comet_ml import Experiment
 from .synthesizer_base import SynthesizerBase, run
 from .synthesizer_utils import BGMTransformer, CONTINUOUS, ORDINAL, CATEGORICAL
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from tqdm.auto import tqdm
+import pickle
 import torch.utils.data
 import torch.optim as optim
 import os
@@ -273,10 +276,20 @@ class TGANSynthesizer(SynthesizerBase):
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data):
+    def train(self, train_data, cometml_key=None):
+        if cometml_key is not None:
+            experiment = Experiment(api_key=cometml_key,
+                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+            experiment.log_parameter('batch_size', self.batch_size)
+            experiment.log_parameter('embeddingDim', self.embeddingDim)
+            experiment.log_parameter('genDim', self.genDim)
+            experiment.log_parameter('disDim', self.disDim)
+
         # train_data = monkey_with_train_data(train_data)
+        print('Transforming data...')
         self.transformer = BGMTransformer(self.meta)
         self.transformer.fit(train_data)
+        pickle.dump(self.transformer, open(f'{self.working_dir}/transformer.pkl', 'wb'))
         train_data = self.transformer.transform(train_data)
 
         # ncp1 = sum(self.transformer.components[0])
@@ -301,21 +314,23 @@ class TGANSynthesizer(SynthesizerBase):
         data_dim = self.transformer.output_dim
         self.cond_generator = Cond(train_data, self.transformer.output_info)
 
-        generator= Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
-        discriminator = Discriminator(data_dim + self.cond_generator.n_opt, self.disDim).to(self.device)
+        self.generator= Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
+        self.discriminator = Discriminator(data_dim + self.cond_generator.n_opt, self.disDim).to(self.device)
 
-        optimizerG = optim.Adam(generator.parameters(), lr=2e-4, betas=(0.5, 0.9), weight_decay=self.l2scale)
-        optimizerD = optim.Adam(discriminator.parameters(), lr=2e-4, betas=(0.5, 0.9))#, weight_decay=self.l2scale)
+        optimizerG = optim.Adam(self.generator.parameters(), lr=2e-4, betas=(0.5, 0.9), weight_decay=self.l2scale)
+        optimizerD = optim.Adam(self.discriminator.parameters(), lr=2e-4, betas=(0.5, 0.9))#, weight_decay=self.l2scale)
+        pickle.dump(self, open(f'{self.working_dir}/tgan_synthesizer.pkl', 'wb'))
+
 
         max_epoch = max(self.store_epoch)
         assert self.batch_size % 2 == 0
         mean = torch.zeros(self.batch_size, self.embeddingDim, device=self.device)
         std = mean + 1
 
-
+        print('Starting training loop...')
         steps_per_epoch = len(train_data) // self.batch_size
-        for i in range(max_epoch):
-            for id_ in range(steps_per_epoch):
+        for i in tqdm(range(max_epoch)):
+            for id_ in tqdm(range(steps_per_epoch), leave=False):
                 fakez = torch.normal(mean=mean, std=std)
 
                 condvec = self.cond_generator.generate(self.batch_size)
@@ -333,7 +348,7 @@ class TGANSynthesizer(SynthesizerBase):
                     real = data_sampler.sample(self.batch_size, col[perm], opt[perm])
                     c2 = c1[perm]
 
-                fake = generator(fakez)
+                fake = self.generator(fakez)
                 fakeact = apply_activate(fake, self.transformer.output_info)
 
 
@@ -351,13 +366,13 @@ class TGANSynthesizer(SynthesizerBase):
                 # print(fake_cat[0])
                 # assert 0
 
-                y_fake = discriminator(fake_cat)
-                y_real = discriminator(real_cat)
+                y_fake = self.discriminator(fake_cat)
+                y_real = self.discriminator(real_cat)
 
 
                 # loss_d = -(torch.log(torch.sigmoid(y_real) + 1e-4).mean()) - (torch.log(1. - torch.sigmoid(y_fake) + 1e-4).mean())
                 loss_d = -(torch.mean(y_real) - torch.mean(y_fake))
-                pen = calc_gradient_penalty(discriminator, real_cat, fake_cat, self.device)
+                pen = calc_gradient_penalty(self.discriminator, real_cat, fake_cat, self.device)
 
                 optimizerD.zero_grad()
                 pen.backward(retain_graph=True)
@@ -377,13 +392,13 @@ class TGANSynthesizer(SynthesizerBase):
                     c1 = torch.from_numpy(c1).to(self.device)
                     m1 = torch.from_numpy(m1).to(self.device)
                     fakez = torch.cat([fakez, c1], dim=1)
-                fake = generator(fakez)
+                fake = self.generator(fakez)
 
                 fakeact = apply_activate(fake, self.transformer.output_info)
                 if c1 is not None:
-                    y_fake = discriminator(torch.cat([fakeact, c1], dim=1))
+                    y_fake = self.discriminator(torch.cat([fakeact, c1], dim=1))
                 else:
-                    y_fake = discriminator(fakeact)
+                    y_fake = self.discriminator(fakeact)
 
                 if condvec is None:
                     cross_entropy = 0
@@ -395,29 +410,39 @@ class TGANSynthesizer(SynthesizerBase):
                 optimizerG.zero_grad()
                 loss_g.backward()
                 optimizerG.step()
+                if cometml_key:
+                    experiment.log_metric('Discriminator Loss', loss_d)
+                    experiment.log_metric('Generator Loss', loss_g)
 
 
             # print("---")
             # print(fakeact[:, 0].mean(), fakeact[:, 0].std())
             # print(fakeact[:, 1 + ncp1].mean(), fakeact[:, 1 + ncp1].std())
             print(i+1, loss_d.data, pen.data, loss_g.data, cross_entropy)
+            if cometml_key:
+                experiment.log_epoch_end(i)
             if i+1 in self.store_epoch:
+                print('Saving model')
                 torch.save({
-                    "generator": generator.state_dict(),
-                    "discriminator": discriminator.state_dict(),
+                    "generator": self.generator.state_dict(),
+                    "discriminator": self.discriminator.state_dict(),
                 }, "{}/model_{}.tar".format(self.working_dir, i+1))
 
     def generate(self, n):
-        data_dim = self.transformer.output_dim
+        if not hasattr(self, 'transformer'):
+            old = pickle.load(open(f'{self.working_dir}/tgan_synthesizer.pkl', 'rb'))
+            self.transformer = old.transformer
+            self.cond_generator = old.cond_generator
+            data_dim = self.transformer.output_dim
+            self.generator = Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
         output_info = self.transformer.output_info
-        generator= Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
 
         ret = []
         for epoch in self.store_epoch:
             checkpoint = torch.load("{}/model_{}.tar".format(self.working_dir, epoch))
-            generator.load_state_dict(checkpoint['generator'])
-            generator.eval()
-            generator.to(self.device)
+            self.generator.load_state_dict(checkpoint['generator'])
+            self.generator.eval()
+            self.generator.to(self.device)
 
             steps = n // self.batch_size + 1
             data = []
@@ -434,7 +459,7 @@ class TGANSynthesizer(SynthesizerBase):
                     c1 = torch.from_numpy(c1).to(self.device)
                     fakez = torch.cat([fakez, c1], dim=1)
 
-                fake = generator(fakez)
+                fake = self.generator(fakez)
                 fakeact = apply_activate(fake, output_info)
                 data.append(fakeact.detach().cpu().numpy())
             data = np.concatenate(data, axis=0)
