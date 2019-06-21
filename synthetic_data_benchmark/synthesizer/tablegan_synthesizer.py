@@ -166,7 +166,14 @@ class TableganSynthesizer(SynthesizerBase):
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data):
+    def train(self, train_data, cometml_key=None):
+        from comet_ml import Experiment
+        if cometml_key is not None:
+            experiment = Experiment(api_key=cometml_key,
+                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+            experiment.log_parameter('batch_size', self.batch_size)
+            experiment.log_parameter('randomDim', self.randomDim)
+
         self.transformer = TableganTransformer(self.meta, self.side)
         train_data = self.transformer.transform(train_data)
         # print(train_data[:3, 0, :, :])
