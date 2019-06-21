@@ -246,8 +246,14 @@ class TableganSynthesizer(SynthesizerBase):
                     loss_cc.backward()
                     optimizerC.step()
                     loss_c = (loss_cc, loss_cg)
+                    if cometml_key:
+                        experiment.log_metric('Classifier Loss', loss_c)
                 else:
                     loss_c = None
+
+                if cometml_key:
+                    experiment.log_metric('Discriminator Loss', loss_d)
+                    experiment.log_metric('Generator Loss', loss_g)
 
                 if((id_+1) % 50 == 0):
                     print("epoch", i+1, "step", id_+1, loss_d, loss_g, loss_c)
