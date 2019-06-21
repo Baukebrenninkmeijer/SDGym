@@ -1,9 +1,10 @@
 from comet_ml import Experiment
 from .synthesizer_base import SynthesizerBase, run
-from .synthesizer_utils import BGMTransformer, CONTINUOUS, ORDINAL, CATEGORICAL
+from .synthesizer_utils import BGMTransformer, GMMTransformer, CONTINUOUS, ORDINAL, CATEGORICAL
 import numpy as np
 import torch
 import torch.nn as nn
+from tensorboardX import SummaryWriter
 from torch.nn import functional as F
 from tqdm.auto import tqdm
 import pickle
@@ -285,6 +286,7 @@ class TGANSynthesizer(SynthesizerBase):
             experiment.log_parameter('genDim', self.genDim)
             experiment.log_parameter('disDim', self.disDim)
 
+        # writer = SummaryWriter()
         # train_data = monkey_with_train_data(train_data)
         print('Transforming data...')
         self.transformer = BGMTransformer(self.meta)
@@ -320,6 +322,8 @@ class TGANSynthesizer(SynthesizerBase):
         optimizerG = optim.Adam(self.generator.parameters(), lr=2e-4, betas=(0.5, 0.9), weight_decay=self.l2scale)
         optimizerD = optim.Adam(self.discriminator.parameters(), lr=2e-4, betas=(0.5, 0.9))#, weight_decay=self.l2scale)
         pickle.dump(self, open(f'{self.working_dir}/tgan_synthesizer.pkl', 'wb'))
+        # writer.add_graph(self.generator)
+        
 
 
         max_epoch = max(self.store_epoch)
@@ -419,8 +423,6 @@ class TGANSynthesizer(SynthesizerBase):
             # print(fakeact[:, 0].mean(), fakeact[:, 0].std())
             # print(fakeact[:, 1 + ncp1].mean(), fakeact[:, 1 + ncp1].std())
             print(i+1, loss_d.data, pen.data, loss_g.data, cross_entropy)
-            if cometml_key:
-                experiment.log_epoch_end(i)
             if i+1 in self.store_epoch:
                 print('Saving model')
                 torch.save({
