@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from comet_ml import Experiment
 from .synthesizer_base import SynthesizerBase, run
 from .synthesizer_utils import CATEGORICAL, ORDINAL, CONTINUOUS
 from sklearn.mixture import GaussianMixture
@@ -168,6 +167,7 @@ class TableganSynthesizer(SynthesizerBase):
         self.store_epoch = store_epoch
 
     def train(self, train_data, cometml_key=None):
+        from comet_ml import Experiment
         if cometml_key is not None:
             experiment = Experiment(api_key=cometml_key,
                                     project_name="dsgym-tgan", workspace="baukebrenninkmeijer")

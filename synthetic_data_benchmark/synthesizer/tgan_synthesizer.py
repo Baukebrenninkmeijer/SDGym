@@ -4,7 +4,7 @@ from .synthesizer_utils import BGMTransformer, GMMTransformer, CONTINUOUS, ORDIN
 import numpy as np
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from torch.nn import functional as F
 from tqdm.auto import tqdm
 import pickle
@@ -32,6 +32,9 @@ class Discriminator(nn.Module):
     def forward(self, input):
         assert input.size()[0] % self.pack == 0
         return self.seq(input.view(-1, self.packdim))
+
+    def __iter__(self): return iter(self.layers)
+
 
 class Residual(nn.Module):
     def __init__(self, i, o):
@@ -62,6 +65,9 @@ class Generator(nn.Module):
     def forward(self, input):
         data = self.seq(input)
         return data
+
+    def __iter__(self): return iter(self.layers)
+
 
 def apply_activate(data, output_info):
     data_t = []
@@ -293,7 +299,6 @@ class TGANSynthesizer(SynthesizerBase):
         self.transformer.fit(train_data)
         pickle.dump(self.transformer, open(f'{self.working_dir}/transformer.pkl', 'wb'))
         train_data = self.transformer.transform(train_data)
-
         # ncp1 = sum(self.transformer.components[0])
         # ncp2 = sum(self.transformer.components[1])
         # for i in range(ncp1):
@@ -323,7 +328,7 @@ class TGANSynthesizer(SynthesizerBase):
         optimizerD = optim.Adam(self.discriminator.parameters(), lr=2e-4, betas=(0.5, 0.9))#, weight_decay=self.l2scale)
         # pickle.dump(self, open(f'{self.working_dir}/tgan_synthesizer.pkl', 'wb'))
         # writer.add_graph(self.generator)
-        
+
 
 
         max_epoch = max(self.store_epoch)
@@ -423,6 +428,8 @@ class TGANSynthesizer(SynthesizerBase):
             # print(fakeact[:, 0].mean(), fakeact[:, 0].std())
             # print(fakeact[:, 1 + ncp1].mean(), fakeact[:, 1 + ncp1].std())
             print(i+1, loss_d.data, pen.data, loss_g.data, cross_entropy)
+            if cometml_key:
+                experiment.log_epoch_end(i)
             if i+1 in self.store_epoch:
                 print('Saving model')
                 torch.save({
@@ -432,14 +439,15 @@ class TGANSynthesizer(SynthesizerBase):
         if cometml_key is not None:
             experiment.end()
 
+
     def generate(self, n):
-        # if not hasattr(self, 'transformer'):
-        #     old = pickle.load(open(f'{self.working_dir}/tgan_synthesizer.pkl', 'rb'))
-        #     self.transformer = old.transformer
-        #     self.cond_generator = old.cond_generator
-        #     data_dim = self.transformer.output_dim
-        #     self.generator = Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
-        # output_info = self.transformer.output_info
+#         if not hasattr(self, 'transformer'):
+#             old = pickle.load(open(f'{self.working_dir}/tgan_synthesizer.pkl', 'rb'))
+#             self.transformer = old.transformer
+#             self.cond_generator = old.cond_generator
+#             data_dim = self.transformer.output_dim
+#             self.generator = Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
+#         output_info = self.transformer.output_info
 
         ret = []
         for epoch in self.store_epoch:
