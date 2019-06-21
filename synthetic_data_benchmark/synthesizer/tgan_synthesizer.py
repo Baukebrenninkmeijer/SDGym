@@ -289,7 +289,7 @@ class TGANSynthesizer(SynthesizerBase):
         # writer = SummaryWriter()
         # train_data = monkey_with_train_data(train_data)
         print('Transforming data...')
-        self.transformer = BGMTransformer(self.meta)
+        self.transformer = GMMTransformer(self.meta)
         self.transformer.fit(train_data)
         pickle.dump(self.transformer, open(f'{self.working_dir}/transformer.pkl', 'wb'))
         train_data = self.transformer.transform(train_data)
@@ -321,7 +321,7 @@ class TGANSynthesizer(SynthesizerBase):
 
         optimizerG = optim.Adam(self.generator.parameters(), lr=2e-4, betas=(0.5, 0.9), weight_decay=self.l2scale)
         optimizerD = optim.Adam(self.discriminator.parameters(), lr=2e-4, betas=(0.5, 0.9))#, weight_decay=self.l2scale)
-        pickle.dump(self, open(f'{self.working_dir}/tgan_synthesizer.pkl', 'wb'))
+        # pickle.dump(self, open(f'{self.working_dir}/tgan_synthesizer.pkl', 'wb'))
         # writer.add_graph(self.generator)
         
 
@@ -429,15 +429,17 @@ class TGANSynthesizer(SynthesizerBase):
                     "generator": self.generator.state_dict(),
                     "discriminator": self.discriminator.state_dict(),
                 }, "{}/model_{}.tar".format(self.working_dir, i+1))
+        if cometml_key is not None:
+            experiment.end()
 
     def generate(self, n):
-        if not hasattr(self, 'transformer'):
-            old = pickle.load(open(f'{self.working_dir}/tgan_synthesizer.pkl', 'rb'))
-            self.transformer = old.transformer
-            self.cond_generator = old.cond_generator
-            data_dim = self.transformer.output_dim
-            self.generator = Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
-        output_info = self.transformer.output_info
+        # if not hasattr(self, 'transformer'):
+        #     old = pickle.load(open(f'{self.working_dir}/tgan_synthesizer.pkl', 'rb'))
+        #     self.transformer = old.transformer
+        #     self.cond_generator = old.cond_generator
+        #     data_dim = self.transformer.output_dim
+        #     self.generator = Generator(self.embeddingDim + self.cond_generator.n_opt, self.genDim, data_dim).to(self.device)
+        # output_info = self.transformer.output_info
 
         ret = []
         for epoch in self.store_epoch:
@@ -462,7 +464,7 @@ class TGANSynthesizer(SynthesizerBase):
                     fakez = torch.cat([fakez, c1], dim=1)
 
                 fake = self.generator(fakez)
-                fakeact = apply_activate(fake, output_info)
+                fakeact = apply_activate(fake, self.transformer.output_info)
                 data.append(fakeact.detach().cpu().numpy())
             data = np.concatenate(data, axis=0)
             data = data[:n]
