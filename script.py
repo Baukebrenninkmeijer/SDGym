@@ -63,8 +63,8 @@ meta = [
     {
     'name': 'trans_date',
     'type': 'continuous',
-    'size': data.trans_date.min(),
-    'i2s': data.trans_date.max()    
+    'min': data.trans_date.min(),
+    'max': data.trans_date.max()    
     },
 ]
 
