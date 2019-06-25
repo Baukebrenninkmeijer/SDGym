@@ -173,6 +173,7 @@ class TableganSynthesizer(SynthesizerBase):
                                     project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
             experiment.log_parameter('batch_size', self.batch_size)
             experiment.log_parameter('randomDim', self.randomDim)
+            experiment.log_parameter('GAN version', 'TableGAN')
 
         self.transformer = TableganTransformer(self.meta, self.side)
         train_data = self.transformer.transform(train_data)
@@ -246,12 +247,12 @@ class TableganSynthesizer(SynthesizerBase):
                     loss_cc.backward()
                     optimizerC.step()
                     loss_c = (loss_cc, loss_cg)
-                    if cometml_key:
+                    if cometml_key is not None:
                         experiment.log_metric('Classifier Loss', loss_c)
                 else:
                     loss_c = None
 
-                if cometml_key:
+                if cometml_key is not None:
                     experiment.log_metric('Discriminator Loss', loss_d)
                     experiment.log_metric('Generator Loss', loss_g)
 

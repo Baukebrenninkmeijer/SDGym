@@ -69,7 +69,8 @@ meta = [
 ]
 
 # synthesizer = TGANSynthesizer(store_epoch=[100])
-synthesizer = TableganSynthesizer(store_epoch=[100])
+epochs = 100
+synthesizer = TableganSynthesizer(store_epoch=[epochs])
 synthesizer.init(meta, working_dir)
 
 synthesizer.train(data.values, cometml_key=config['comet_ml']['api_key'])
@@ -81,5 +82,5 @@ generated = synthesizer.generate(n)
 
 z = pd.DataFrame(generated[0][1])
 z.columns = data.columns
-z.to_csv(f'generated_data/{dataset}/sample_{epoch}.csv')
+z.to_csv(f'generated_data/{dataset}/sample_{epochs}.csv')
 print('Done.')

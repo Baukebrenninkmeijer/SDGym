@@ -291,6 +291,7 @@ class TGANSynthesizer(SynthesizerBase):
             experiment.log_parameter('embeddingDim', self.embeddingDim)
             experiment.log_parameter('genDim', self.genDim)
             experiment.log_parameter('disDim', self.disDim)
+            experiment.log_parameter('GAN version', 'TGAN')
 
         # writer = SummaryWriter()
         # train_data = monkey_with_train_data(train_data)

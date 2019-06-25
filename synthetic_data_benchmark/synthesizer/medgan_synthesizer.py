@@ -1,3 +1,4 @@
+from comet_ml import Experiment
 from .synthesizer_base import SynthesizerBase, run
 from .synthesizer_utils import GeneralTransformer
 import numpy as np
@@ -113,7 +114,6 @@ def aeloss(fake, real, output_info):
 
 
 class MedganSynthesizer(SynthesizerBase):
-    """docstring for IdentitySynthesizer."""
     def __init__(self,
                  embeddingDim=128,
                  randomDim=128,
@@ -141,7 +141,16 @@ class MedganSynthesizer(SynthesizerBase):
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data):
+    def train(self, train_data, cometml_key=None):
+        if cometml_key is not None:
+            experiment = Experiment(api_key=cometml_key,
+                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+            experiment.log_parameter('batch_size', self.batch_size)
+            experiment.log_parameter('embeddingDim', self.embeddingDim)
+            experiment.log_parameter('generatorDims', self.generatorDims)
+            experiment.log_parameter('discriminatorDims', self.discriminatorDims)
+            experiment.log_parameter('GAN version', 'MedGAN')
+
         self.transformer = GeneralTransformer(self.meta)
         self.transformer.fit(train_data)
         train_data = self.transformer.transform(train_data)
@@ -201,8 +210,12 @@ class MedganSynthesizer(SynthesizerBase):
                         loss_g = -(torch.log(y_fake + 1e-4).mean())
                         loss_g.backward()
                         optimizerG.step()
+                        if cometml_key:
+                            experiment.log_metric('Generator Loss', loss_g)
 
-            print(loss_d, loss_g)
+            # print(loss_d, loss_g)
+            if cometml_key:
+                experiment.log_metric('Discriminator Loss', loss_d)
             if i+1 in self.store_epoch:
                 torch.save({
                     "generator": generator.state_dict(),
