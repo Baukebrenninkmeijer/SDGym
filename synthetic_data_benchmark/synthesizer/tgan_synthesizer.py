@@ -296,7 +296,7 @@ class TGANSynthesizer(SynthesizerBase):
         # writer = SummaryWriter()
         # train_data = monkey_with_train_data(train_data)
         print('Transforming data...')
-        self.transformer = GMMTransformer(self.meta)
+        self.transformer = BGMTransformer(self.meta)
         self.transformer.fit(train_data)
         pickle.dump(self.transformer, open(f'{self.working_dir}/transformer.pkl', 'wb'))
         train_data = self.transformer.transform(train_data)

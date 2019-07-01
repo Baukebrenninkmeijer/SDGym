@@ -9,7 +9,7 @@ temp.csv
 tmp
 output
 __*tmp
-*.ipynb
+
 *.bin
 
 # Created by https://www.gitignore.io/api/macos,python
