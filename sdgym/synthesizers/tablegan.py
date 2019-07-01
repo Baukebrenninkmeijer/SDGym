@@ -10,7 +10,7 @@ from torch.nn.functional import binary_cross_entropy_with_logits
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 
-from sdgym.synthesizers.base import SynthesizerBase
+# from sdgym.synthesizers.base import SynthesizerBase
 from sdgym.synthesizers.utils import CATEGORICAL, TableganTransformer
 
 
@@ -117,7 +117,7 @@ def weights_init(m):
         init.constant_(m.bias.data, 0)
 
 
-class TableganSynthesizer(SynthesizerBase):
+class TableganSynthesizer:
     """docstring for TableganSynthesizer??"""
 
     def __init__(self,
@@ -205,7 +205,7 @@ class TableganSynthesizer(SynthesizerBase):
                 else:
                     loss_c = None
 
-                if((id_ + 1) % 50 == 0):
+                if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g, loss_c)
             if i + 1 in self.store_epoch:
                 torch.save({

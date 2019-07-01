@@ -104,12 +104,14 @@ class GeneralTransformer(Transformer):
     """
     def __init__(self, meta, act='sigmoid'):
         self.act = act
-        self.meta = None
+        self.meta = meta
         self.output_dim = None
 
     def fit(self, data):
-        self.meta = self.get_metadata(data)
-        self.columns = data.columns
+        if self.meta is None:
+            self.meta = self.get_metadata(data)
+#         self.columns = data.columns
+        self.columns = [col['name'] for col in self.meta]
         self.output_dim = 0
         for info in self.meta:
             if info['type'] in [CONTINUOUS, ORDINAL]:

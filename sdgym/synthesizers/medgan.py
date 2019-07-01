@@ -4,12 +4,13 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import BatchNorm1d, Linear, Module, Sequential
+from tqdm import trange
 from torch.nn.functional import cross_entropy, mse_loss, sigmoid
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 
-from sdgym.synthesizer_base import SynthesizerBase
-from sdgym.synthesizer_utils import GeneralTransformer
+# from sdgym.synthesizer_base import SynthesizerBase
+from sdgym.synthesizers.utils import GeneralTransformer
 
 
 class ResidualFC(Module):
@@ -120,7 +121,7 @@ def aeloss(fake, real, output_info):
     return sum(loss) / fake.size()[0]
 
 
-class MedganSynthesizer(SynthesizerBase):
+class MedganSynthesizer:
     """docstring for IdentitySynthesizer."""
     def __init__(self,
                  embedding_dim=128,
@@ -151,7 +152,9 @@ class MedganSynthesizer(SynthesizerBase):
 
     def train(self, train_data):
         self.transformer = GeneralTransformer(self.meta)
+        print(f'Fitting this boi')
         self.transformer.fit(train_data)
+        print(f'Transforming this boi')
         train_data = self.transformer.transform(train_data)
         dataset = TensorDataset(torch.from_numpy(train_data.astype('float32')).to(self.device))
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
@@ -163,8 +166,8 @@ class MedganSynthesizer(SynthesizerBase):
             list(encoder.parameters()) + list(decoder.parameters()),
             weight_decay=self.l2scale
         )
-
-        for i in range(self.pretrain_epoch):
+        print(f'Pretraining encoders')
+        for i in trange(self.pretrain_epoch):
             for id_, data in enumerate(loader):
                 optimizerAE.zero_grad()
                 real = data[0].to(self.device)
@@ -181,7 +184,7 @@ class MedganSynthesizer(SynthesizerBase):
             weight_decay=self.l2scale
         )
         optimizerD = Adam(discriminator.parameters(), weight_decay=self.l2scale)
-
+        print(f'Starting training')
         mean = torch.zeros(self.batch_size, self.random_dim, device=self.device)
         std = mean + 1
         max_epoch = max(self.store_epoch)
@@ -213,6 +216,9 @@ class MedganSynthesizer(SynthesizerBase):
                         loss_g = -(torch.log(y_fake + 1e-4).mean())
                         loss_g.backward()
                         optimizerG.step()
+                        
+                if((id_ + 1) % 10 == 0):
+                    print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g)
 
             if i + 1 in self.store_epoch:
                 torch.save({
