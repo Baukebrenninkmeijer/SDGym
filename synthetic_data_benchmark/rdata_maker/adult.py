@@ -5,11 +5,13 @@ import logging
 import json
 import numpy as np
 import pandas as pd
+import sys
+sys.path.append('synthetic_data_benchmark')
 
-from ..utils import CATEGORICAL, CONTINUOUS, ORDINAL, verify
+from utils import CATEGORICAL, CONTINUOUS, ORDINAL, verify
 
 
-output_dir = "data/real/"
+output_dir = "data/real"
 temp_dir = "tmp/"
 
 
@@ -29,7 +31,7 @@ def project_table(data, meta):
 
 if __name__ == "__main__":
     try:
-        s.mkdir(output_dir)
+        os.mkdir(output_dir)
     except:
         pass
 
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     except:
         pass
 
-    df = pd.read_csv("data/raw/adult/adult.data", dtype='str', header=-1)
+    df = pd.read_csv("../data/adult/adult.data", dtype='str', header=-1)
     df = df.apply(lambda x: x.str.strip(' \t.'))
 
     col_type = [
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         ("capital-loss", CONTINUOUS),
         ("hours-per-week", CONTINUOUS),
         ("native-country", CATEGORICAL),
-        ("label", CATEGORICAL)
+        ("label", CATEGORICAL) 
     ]
 
     meta = []
@@ -93,7 +95,8 @@ if __name__ == "__main__":
     t_test = tdata[-10000:]
 
     name = "adult"
-    with open("{}/{}.json".format(output_dir, name), 'w') as f:
+    pd.DataFrame(t_train).to_csv('adult_df.csv', index=False)
+    with open("{}/{}.json".format(output_dir, name), 'w+') as f:
         json.dump(meta, f, sort_keys=True, indent=4, separators=(',', ': '))
     np.savez("{}/{}.npz".format(output_dir, name), train=t_train, test=t_test)
 

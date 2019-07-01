@@ -5,8 +5,10 @@ import logging
 import json
 import numpy as np
 import pandas as pd
+import sys
+sys.path.append('synthetic_data_benchmark')
 
-from ..utils import CATEGORICAL, CONTINUOUS, ORDINAL, verify
+from utils import CATEGORICAL, CONTINUOUS, ORDINAL, verify
 
 
 output_dir = "data/real/"
@@ -38,9 +40,9 @@ if __name__ == "__main__":
     except:
         pass
 
-    trainset = pd.read_csv("data/raw/census/census-income.data", dtype='str', header=-1)
+    trainset = pd.read_csv("../data/uscensus/census-income.data", dtype='str', header=-1)
     trainset = trainset.apply(lambda x: x.str.strip(' \t.'))
-    testset = pd.read_csv("data/raw/census/census-income.test", dtype='str', header=-1)
+    testset = pd.read_csv("../data/uscensus/census-income.test", dtype='str', header=-1)
     testset = testset.apply(lambda x: x.str.strip(' \t.'))
     trainset.drop([24], axis='columns', inplace=True) # drop instance weight
     testset.drop([24], axis='columns', inplace=True)
@@ -114,6 +116,8 @@ if __name__ == "__main__":
     t_test = project_table(testset, meta)
 
     name = "census"
+    import pandas as pd
+    pd.DataFrame(t_train).to_csv('census_df.csv', index=False)
     with open("{}/{}.json".format(output_dir, name), 'w') as f:
         json.dump(meta, f, sort_keys=True, indent=4, separators=(',', ': '))
     np.savez("{}/{}.npz".format(output_dir, name), train=t_train, test=t_test)

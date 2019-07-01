@@ -1,4 +1,4 @@
-# from synthetic_data_benchmark.synthesizer.tgan_synthesizer import *
+from synthetic_data_benchmark.synthesizer.tgan_synthesizer import *
 from synthetic_data_benchmark.synthesizer.tablegan_synthesizer import *
 import pandas as pd
 import numpy as np
@@ -12,7 +12,7 @@ output = 'samples/test'
 dataset = 'berka'
 working_dir = "{}/ckpt_{}".format(output, dataset)
 
-data = pd.read_csv('../data/berka/berka.csv', sep=';')[:1000000]
+data = pd.read_csv('../data/berka/berka.csv', sep=';')
 
 import pickle
 subs = pickle.load(open('../data/berka/subs.pkl', 'rb'))
@@ -68,9 +68,9 @@ meta = [
     },
 ]
 
-# synthesizer = TGANSynthesizer(store_epoch=[100])
-epochs = 100
-synthesizer = TableganSynthesizer(store_epoch=[epochs])
+epochs = 150
+synthesizer = TGANSynthesizer(store_epoch=[epochs])
+# synthesizer = TableganSynthesizer(store_epoch=[epochs])
 synthesizer.init(meta, working_dir)
 
 synthesizer.train(data.values, cometml_key=config['comet_ml']['api_key'])
@@ -82,5 +82,7 @@ generated = synthesizer.generate(n)
 
 z = pd.DataFrame(generated[0][1])
 z.columns = data.columns
+if not os.exists(f'generated_data/{dataset}'):
+    os.mkdir(f'generated_data/{dataset}')
 z.to_csv(f'generated_data/{dataset}/sample_{epochs}.csv')
 print('Done.')

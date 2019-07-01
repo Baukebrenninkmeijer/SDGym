@@ -1,5 +1,11 @@
 config.ini
 data
+adult_df.csv
+census_df.csv
+mixed_sample.csv
+mixed_sample_ground_truth.csv
+samples/
+temp.csv
 tmp
 output
 __*tmp
