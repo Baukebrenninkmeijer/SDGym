@@ -11,7 +11,7 @@ data
 tmp
 output
 __*tmp
-*.ipynb
+
 *.bin
 
 
