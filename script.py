@@ -7,16 +7,16 @@ import pandas as pd
 import numpy as np
 import json
 from comet_ml import Experiment
-from tqdm.auto import tqdm
 import configparser
-
 import argparse
 
 parser = argparse.ArgumentParser(description='Evaluate data synthesizers')
-parser.add_argument('dataset', type=str, help='Which dataset to choose. Options are berka, creditcard and ticket')
+parser.add_argument('--dataset', type=str, help='Which dataset to choose. Options are berka, creditcard and ticket')
+parser.add_argument('--synthesizers', nargs='*', help='Which synthesizers/generators to use.', default=['tablegan', 'tgan', 'medgan'])
 
 args = parser.parse_args()
 dataset = args.dataset
+arg_synths = args.synthesizers
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -33,9 +33,12 @@ meta = json.load(open(f'data/real/{dataset}.json', 'r'))
 print(f'\nDataset: {dataset} \nEpochs: {epochs}')
 
 synthesizers = dict()
-synthesizers['tablegan'] = TableganSynthesizer(store_epoch=[epochs])
-synthesizers['tgan'] = TGANSynthesizer(store_epoch=[epochs])
-synthesizers['medgan'] = MedganSynthesizer(store_epoch=[epochs], pretrain_epoch=50)
+if 'tablegan' in arg_synths:
+    synthesizers['tablegan'] = TableganSynthesizer(store_epoch=[epochs])
+if 'tgan' in arg_synths:
+    synthesizers['tgan'] = TGANSynthesizer(store_epoch=[epochs])
+if 'medgan' in arg_synths:
+    synthesizers['medgan'] = MedganSynthesizer(store_epoch=[epochs], pretrain_epoch=50)
 
 for synth_name, synthesizer in synthesizers.items():
     experiment = Experiment(api_key=config['comet_ml']['api_key'],
