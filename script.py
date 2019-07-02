@@ -30,10 +30,7 @@ project_name = "dsgym-tgan"
 data = pd.read_csv(f'../data/{dataset}/{dataset}_sdgym.csv')
 meta = json.load(open(f'data/real/{dataset}.json', 'r'))
 
-experiment = Experiment(api_key="49HGMPyIKjokHwg2pVOKWTG67",
-                        project_name=project_name, workspace="baukebrenninkmeijer")
-
-print(f'\nDataset: {dataset} \nEpochs: {epochs}')
+print(f'\nDataset: {dataset} \nEpochs: {epochs}\n')
 
 synthesizers = dict()
 if 'tablegan' in arg_synths:
@@ -44,9 +41,11 @@ if 'medgan' in arg_synths:
     synthesizers['medgan'] = MedganSynthesizer(store_epoch=[epochs], pretrain_epoch=50)
 
 for synth_name, synthesizer in synthesizers.items():
+    synthesizer.init(meta, working_dir)
+
     experiment = Experiment(api_key=config['comet_ml']['api_key'],
                             project_name=project_name, workspace="baukebrenninkmeijer")
-    synthesizer.init(meta, working_dir)
+    experiment.log_parameter('dataset', dataset)
 
     print(f'Training {synth_name}')
     synthesizer.train(data.values, experiment=experiment)
@@ -61,6 +60,5 @@ for synth_name, synthesizer in synthesizers.items():
     z.to_csv(f'{data_path}/sample_{epochs}.csv', index=False)
 
     experiment.log_asset_data(z, file_name=f'sample_{dataset}_{project_name}_{len(z)}', overwrite=False)
-    experiment.log_parameter('dataset', dataset)
     experiment.end()
     print('Done.')
