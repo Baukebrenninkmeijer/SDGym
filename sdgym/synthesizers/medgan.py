@@ -229,9 +229,9 @@ class MedganSynthesizer:
                 if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g)
                     
-                if experiment is not None:
-                    experiment.log_metric('Discriminator Loss', loss_d)
-                    experiment.log_metric('Generator Loss', loss_g)
+                    if experiment is not None:
+                        experiment.log_metric('Discriminator Loss', loss_d)
+                        experiment.log_metric('Generator Loss', loss_g)
 
 
             if i + 1 in self.store_epoch:
