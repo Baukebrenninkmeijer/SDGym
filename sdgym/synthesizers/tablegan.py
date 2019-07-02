@@ -212,7 +212,7 @@ class TableganSynthesizer:
                 else:
                     loss_c = None
 
-                if((id_ + 1) % 100 == 0):
+                if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g, loss_c)
 
                     if experiment is not None:

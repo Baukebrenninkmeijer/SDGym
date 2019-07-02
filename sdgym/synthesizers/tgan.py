@@ -397,7 +397,7 @@ class TGANSynthesizer:
                 loss_g.backward()
                 optimizerG.step()
                 
-                if((id_ + 1) % 100 == 0):
+                if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g)
 
                     if experiment is not None:
