@@ -47,9 +47,10 @@ for synth_name, synthesizer in synthesizers.items():
     experiment = Experiment(api_key=config['comet_ml']['api_key'],
                             project_name=project_name, workspace="baukebrenninkmeijer")
     synthesizer.init(meta, working_dir)
+
+    print(f'Training {synth_name}')
     synthesizer.train(data.values, experiment=experiment)
 
-    print(f'Generating data with {synth_name}')
     generated = synthesizer.generate(n)
 
     z = pd.DataFrame(generated[0][1])

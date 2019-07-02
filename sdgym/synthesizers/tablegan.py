@@ -219,7 +219,8 @@ class TableganSynthesizer:
                         experiment.log_metric('Discriminator Loss', loss_d)
                         experiment.log_metric('Generator Loss', loss_g)
                         if loss_c is not None:
-                            experiment.log_metric('Classifier Loss', loss_c)
+                            # saving only loss_cg since that's what updates the generator
+                            experiment.log_metric('Classifier Loss', loss_cg)
                         
 
                 

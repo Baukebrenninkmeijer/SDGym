@@ -161,9 +161,7 @@ class MedganSynthesizer:
             experiment.log_parameter('GAN version', 'MedGAN')
             
         self.transformer = GeneralTransformer(self.meta)
-        print(f'Fitting this boi')
         self.transformer.fit(train_data)
-        print(f'Transforming this boi')
         train_data = self.transformer.transform(train_data)
         dataset = TensorDataset(torch.from_numpy(train_data.astype('float32')).to(self.device))
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
