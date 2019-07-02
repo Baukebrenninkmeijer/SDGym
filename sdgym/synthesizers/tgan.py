@@ -1,4 +1,5 @@
 import os
+from comet_ml import Experiment
 
 import numpy as np
 import torch
@@ -289,7 +290,14 @@ class TGANSynthesizer:
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data):
+    def train(self, train_data, cometml_key=None):
+        if cometml_key is not None:
+            experiment = Experiment(api_key=cometml_key,
+                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+            experiment.log_parameter('batch_size', self.batch_size)
+            experiment.log_parameter('gen_dim', self.gen_dim)
+            experiment.log_parameter('GAN version', 'TGAN')
+            
         # train_data = monkey_with_train_data(train_data)
         self.transformer = BGMTransformer(self.meta)
         self.transformer.fit(train_data)
@@ -391,8 +399,12 @@ class TGANSynthesizer:
                 loss_g.backward()
                 optimizerG.step()
                 
-                if((id_ + 1) % 10 == 0):
+                if((id_ + 1) % 100 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g)
+                
+                if cometml_key is not None:
+                    experiment.log_metric('Discriminator Loss', loss_d)
+                    experiment.log_metric('Generator Loss', loss_g)
                     
             if i + 1 in self.store_epoch:
                 torch.save({

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import os
+from comet_ml import Experiment
 
 import numpy as np
 import torch
@@ -134,7 +135,15 @@ class TableganSynthesizer:
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data):
+    def train(self, train_data, cometml_key=None):
+        if cometml_key is not None:
+            experiment = Experiment(api_key=cometml_key,
+                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+            experiment.log_parameter('batch_size', self.batch_size)
+            experiment.log_parameter('random_dim', self.random_dim)
+            experiment.log_parameter('numChannels', self.numChannels)
+            experiment.log_parameter('GAN version', 'TableGAN')
+        
         self.transformer = TableganTransformer(self.meta, self.side)
         train_data = self.transformer.transform(train_data)
         train_data = torch.from_numpy(train_data.astype('float32')).to(self.device)
@@ -205,8 +214,17 @@ class TableganSynthesizer:
                 else:
                     loss_c = None
 
-                if((id_ + 1) % 10 == 0):
+                if((id_ + 1) % 100 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g, loss_c)
+                    
+                if cometml_key is not None:
+                    experiment.log_metric('Discriminator Loss', loss_d)
+                    experiment.log_metric('Generator Loss', loss_g)
+                    if loss_c is not None:
+                        experiment.log_metric('Classifier Loss', loss_c)
+                        
+
+                
             if i + 1 in self.store_epoch:
                 torch.save({
                     "generator": generator.state_dict(),
