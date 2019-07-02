@@ -30,6 +30,11 @@ project_name = "dsgym-tgan"
 data = pd.read_csv(f'../data/{dataset}/{dataset}_sdgym.csv')
 meta = json.load(open(f'data/real/{dataset}.json', 'r'))
 
+project_name = "dsgym-tgan"
+experiment = Experiment(api_key="49HGMPyIKjokHwg2pVOKWTG67",
+                        project_name=project_name, workspace="baukebrenninkmeijer")
+
+epochs = 100
 print(f'\nDataset: {dataset} \nEpochs: {epochs}')
 
 synthesizers = dict()
