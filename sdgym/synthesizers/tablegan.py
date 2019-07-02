@@ -135,10 +135,8 @@ class TableganSynthesizer:
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data, cometml_key=None):
-        if cometml_key is not None:
-            experiment = Experiment(api_key=cometml_key,
-                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+    def train(self, train_data, experiment=None):
+        if experiment is not None:
             experiment.log_parameter('batch_size', self.batch_size)
             experiment.log_parameter('random_dim', self.random_dim)
             experiment.log_parameter('numChannels', self.numChannels)

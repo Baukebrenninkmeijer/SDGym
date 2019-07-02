@@ -290,10 +290,8 @@ class TGANSynthesizer:
         self.batch_size = batch_size
         self.store_epoch = store_epoch
 
-    def train(self, train_data, cometml_key=None):
-        if cometml_key is not None:
-            experiment = Experiment(api_key=cometml_key,
-                                    project_name="dsgym-tgan", workspace="baukebrenninkmeijer")
+    def train(self, train_data, experiment=None):
+        if experiment is not None:
             experiment.log_parameter('batch_size', self.batch_size)
             experiment.log_parameter('gen_dim', self.gen_dim)
             experiment.log_parameter('GAN version', 'TGAN')
