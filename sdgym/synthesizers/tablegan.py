@@ -144,6 +144,7 @@ class TableganSynthesizer:
         
         self.transformer = TableganTransformer(self.meta, self.side)
         train_data = self.transformer.transform(train_data)
+        print(train_data[:10])
         train_data = torch.from_numpy(train_data.astype('float32')).to(self.device)
         dataset = TensorDataset(train_data)
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
@@ -171,6 +172,8 @@ class TableganSynthesizer:
                 real = data[0].to(self.device)
                 noise = torch.randn(self.batch_size, self.random_dim, 1, 1, device=self.device)
                 fake = generator(noise)
+                print(fake[:10])
+                print(real[:10])
 
                 optimizerD.zero_grad()
                 y_real = discriminator(real)
@@ -221,10 +224,9 @@ class TableganSynthesizer:
                         if loss_c is not None:
                             # saving only loss_cg since that's what updates the generator
                             experiment.log_metric('Classifier Loss', loss_cg)
-                        
 
-                
             if i + 1 in self.store_epoch:
+                print(f'Saving weights')
                 torch.save({
                     "generator": generator.state_dict(),
                     "discriminator": discriminator.state_dict(),
