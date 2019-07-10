@@ -226,7 +226,7 @@ class TableganSynthesizer:
                             experiment.log_metric('Classifier Loss', loss_cg)
 
             if i + 1 in self.store_epoch:
-                print(f'Saving weights')
+                print('Saving model')
                 torch.save({
                     "generator": generator.state_dict(),
                     "discriminator": discriminator.state_dict(),
@@ -252,6 +252,7 @@ class TableganSynthesizer:
                 data.append(fake.detach().cpu().numpy())
 
             data = np.concatenate(data, axis=0)
+            print(data[:10])
             data = self.transformer.inverse_transform(data[:n])
             ret.append((epoch, data))
 
