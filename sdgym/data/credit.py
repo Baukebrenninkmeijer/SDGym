@@ -5,7 +5,8 @@ import os
 
 import numpy as np
 import pandas as pd
-
+import sys
+sys.path.append('')
 from sdgym.utils import CATEGORICAL, CONTINUOUS, verify
 
 output_dir = "data/real/"
@@ -16,10 +17,11 @@ if __name__ == "__main__":
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
-    if os.path.isdir(temp_dir):
+    if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
 
-    df = pd.read_csv("data/raw/creditcard.csv")
+#     df = pd.read_csv("data/raw/creditcard.csv")
+    df = pd.read_csv("../data/creditcard/creditcard_num.csv")
     df.drop(columns=['Time'], inplace=True)
     values = df.values
 
@@ -49,7 +51,9 @@ if __name__ == "__main__":
     t_train = values[:-20000].astype('float32')
     t_test = values[-20000:].astype('float32')
 
-    name = "credit"
+    name = "creditcard"
+
+    pd.DataFrame(values).to_csv(f'../data/{name}/{name}_sdgym.csv', index=False)
     with open("{}/{}.json".format(output_dir, name), 'w') as f:
         json.dump(meta, f, sort_keys=True, indent=4, separators=(',', ': '))
     np.savez("{}/{}.npz".format(output_dir, name), train=t_train, test=t_test)

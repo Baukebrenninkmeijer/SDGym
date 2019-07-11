@@ -1,12 +1,12 @@
 # from synthetic_data_benchmark.synthesizer.tgan_synthesizer import *
 # from synthetic_data_benchmark.synthesizer.tablegan_synthesizer import *
+from comet_ml import Experiment
 from sdgym.synthesizers.tgan import *
 from sdgym.synthesizers.tablegan import *
 from sdgym.synthesizers.medgan import *
 import pandas as pd
 import numpy as np
 import json
-from comet_ml import Experiment
 import configparser
 import argparse
 
@@ -24,21 +24,23 @@ config.read('config.ini')
 output = 'samples/test'
 working_dir = "{}/ckpt_{}".format(output, dataset)
 epochs = 100
-n = 1000000
+n = 100000
 project_name = "dsgym-tgan"
+store_epoch = list(range(1, epochs, 10))
+
 
 data = pd.read_csv(f'../data/{dataset}/{dataset}_sdgym.csv')
 meta = json.load(open(f'data/real/{dataset}.json', 'r'))
 
-print(f'\nDataset: {dataset} \nEpochs: {epochs}\n')
+print(f'\nDataset: {dataset} \nEpochs: {epochs}')
 
 synthesizers = dict()
 if 'tablegan' in arg_synths:
-    synthesizers['tablegan'] = TableganSynthesizer(store_epoch=[epochs])
+    synthesizers['tablegan'] = TableganSynthesizer(store_epoch=store_epoch)
 if 'tgan' in arg_synths:
-    synthesizers['tgan'] = TGANSynthesizer(store_epoch=[epochs])
+    synthesizers['tgan'] = TGANSynthesizer(store_epoch=store_epoch)
 if 'medgan' in arg_synths:
-    synthesizers['medgan'] = MedganSynthesizer(store_epoch=[epochs], pretrain_epoch=50)
+    synthesizers['medgan'] = MedganSynthesizer(store_epoch=store_epoch, pretrain_epoch=50)
 
 for synth_name, synthesizer in synthesizers.items():
     synthesizer.init(meta, working_dir)
@@ -52,13 +54,20 @@ for synth_name, synthesizer in synthesizers.items():
 
     generated = synthesizer.generate(n)
 
-    z = pd.DataFrame(generated[0][1])
-    z.columns = data.columns
     data_path = f'generated_data/{dataset}/{synth_name}'
     if not os.path.exists(data_path):
         os.mkdir(data_path)
-    z.to_csv(f'{data_path}/sample_{epochs}.csv', index=False)
+        
+    # Loop through all samples
+    for i, sample in enumerate(generated):
+        z = pd.DataFrame(sample[1])
+        epoch = sample[0]
+        z.columns = data.columns
+        experiment.log_html(z.head(25).to_html())
+        if i == max(epochs):
+            z.to_csv(f'{data_path}/sample_{dataset}_{epoch}.csv', index=False)
+        else:
+            z[:50].to_csv(f'{data_path}/sample_{dataset}_{epoch}.csv', index=False)
 
-    experiment.log_asset_data(z, file_name=f'sample_{dataset}_{project_name}_{len(z)}', overwrite=False)
     experiment.end()
     print('Done.')
