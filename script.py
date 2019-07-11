@@ -64,10 +64,19 @@ for synth_name, synthesizer in synthesizers.items():
         epoch = sample[0]
         z.columns = data.columns
         experiment.log_html(z.head(25).to_html())
-        if i == max(epochs):
-            z.to_csv(f'{data_path}/sample_{dataset}_{epoch}.csv', index=False)
+        if i != max(epochs):
+            z = z[:50]
+
+        if os.path.exists('/mnt'):
+            if not os.path.exists('/mnt/samples'):
+                os.mkdir('/mnt/samples')
+            # z.to_csv(f'/mnt/samples/{dataset}_sample_{project_name}.csv', index=False)
+            z.to_csv(f'/mnt/samples/sample_{dataset}_{synthesizer}_{epoch}.csv', index=False)
         else:
-            z[:50].to_csv(f'{data_path}/sample_{dataset}_{epoch}.csv', index=False)
+            if not os.path.exists('samples'):
+                os.mkdir('samples')
+            z.to_csv(f'samples/sample_{dataset}_{synthesizer}_{epoch}.csv', index=False)
+
 
     experiment.end()
     print('Done.')
