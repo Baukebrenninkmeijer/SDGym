@@ -64,7 +64,7 @@ for synth_name, synthesizer in synthesizers.items():
         epoch = sample[0]
         z.columns = data.columns
         experiment.log_html(z.head(25).to_html())
-        if i != max(epochs):
+        if i != epochs:
             z = z[:50]
 
         if os.path.exists('/mnt'):
