@@ -144,7 +144,6 @@ class TableganSynthesizer:
         
         self.transformer = TableganTransformer(self.meta, self.side)
         train_data = self.transformer.transform(train_data)
-        print(train_data[:10])
         train_data = torch.from_numpy(train_data.astype('float32')).to(self.device)
         dataset = TensorDataset(train_data)
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
@@ -172,8 +171,7 @@ class TableganSynthesizer:
                 real = data[0].to(self.device)
                 noise = torch.randn(self.batch_size, self.random_dim, 1, 1, device=self.device)
                 fake = generator(noise)
-                print(fake[:10])
-                print(real[:10])
+
 
                 optimizerD.zero_grad()
                 y_real = discriminator(real)
@@ -217,6 +215,8 @@ class TableganSynthesizer:
 
                 if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g, loss_c)
+                    print(fake[:1])
+                    print(real[:1])
 
                     if experiment is not None:
                         experiment.log_metric('Discriminator Loss', loss_d)
