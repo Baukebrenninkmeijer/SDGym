@@ -21,12 +21,12 @@ arg_synths = args.synthesizers
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-output = 'samples/test'
+output = 'model_checkpoints'
 working_dir = "{}/ckpt_{}".format(output, dataset)
 epochs = 100
 n = 100000
 project_name = "dsgym-tgan"
-store_epoch = list(range(1, epochs, 10))
+store_epoch = [1] + list(range(10, epochs + 10, 10))
 
 
 data = pd.read_csv(f'../data/{dataset}/{dataset}_sdgym.csv')
@@ -71,11 +71,11 @@ for synth_name, synthesizer in synthesizers.items():
             if not os.path.exists('/mnt/samples'):
                 os.mkdir('/mnt/samples')
             # z.to_csv(f'/mnt/samples/{dataset}_sample_{project_name}.csv', index=False)
-            z.to_csv(f'/mnt/samples/sample_{dataset}_{synthesizer}_{epoch}.csv', index=False)
+            z.to_csv(f'/mnt/samples/sample_{dataset}_{synth_name}_{epoch}.csv', index=False)
         else:
             if not os.path.exists('samples'):
                 os.mkdir('samples')
-            z.to_csv(f'samples/sample_{dataset}_{synthesizer}_{epoch}.csv', index=False)
+            z.to_csv(f'samples/sample_{dataset}_{synth_name}_{epoch}.csv', index=False)
 
 
     experiment.end()
