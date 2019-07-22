@@ -215,8 +215,6 @@ class TableganSynthesizer:
 
                 if((id_ + 1) % 10 == 0):
                     print("epoch", i + 1, "step", id_ + 1, loss_d, loss_g, loss_c)
-                    print(fake[:1])
-                    print(real[:1])
 
                     if experiment is not None:
                         experiment.log_metric('Discriminator Loss', loss_d)
