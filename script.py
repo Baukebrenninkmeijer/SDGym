@@ -21,13 +21,21 @@ arg_synths = args.synthesizers
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-output = 'model_checkpoints'
+if os.path.exists('/mnt'):
+    if not os.path.exists('/mnt/model_checkpoints'):
+        os.mkdir('/mnt/model_checkpoints')
+    output = '/mnt/model_checkpoints'
+else:
+    if not os.path.exists('model_checkpoints'):
+        os.mkdir('model_checkpoints')
+    output = 'model_checkpoints'
+
 working_dir = "{}/ckpt_{}".format(output, dataset)
 epochs = 100
+n_checkpoints = 5
+store_epoch = [1] + list(range(epochs // n_checkpoints, epochs + 1, epochs // n_checkpoints)) if epochs // n_checkpoints > 0 else [epochs]
 n = 100000
 project_name = "dsgym-tgan"
-store_epoch = [1] + list(range(10, epochs + 10, 10))
-
 
 data = pd.read_csv(f'../data/{dataset}/{dataset}_sdgym.csv')
 meta = json.load(open(f'data/real/{dataset}.json', 'r'))
@@ -57,14 +65,19 @@ for synth_name, synthesizer in synthesizers.items():
     data_path = f'generated_data/{dataset}/{synth_name}'
     if not os.path.exists(data_path):
         os.mkdir(data_path)
-        
+
     # Loop through all samples
     for i, sample in enumerate(generated):
         z = pd.DataFrame(sample[1])
         epoch = sample[0]
         z.columns = data.columns
         experiment.log_html(z.head(25).to_html())
-        if i != epochs:
+
+        for id_, info in enumerate(meta):
+            if info['type'] in [CATEGORICAL, 'ordinal']:
+                z.iloc[:, id_] = [info['i2s'][x] for x in z.iloc[:, id_].tolist()]
+
+        if epoch != max(store_epoch):
             z = z[:50]
 
         if os.path.exists('/mnt'):
@@ -76,7 +89,6 @@ for synth_name, synthesizer in synthesizers.items():
             if not os.path.exists('samples'):
                 os.mkdir('samples')
             z.to_csv(f'samples/sample_{dataset}_{synth_name}_{epoch}.csv', index=False)
-
 
     experiment.end()
     print('Done.')
