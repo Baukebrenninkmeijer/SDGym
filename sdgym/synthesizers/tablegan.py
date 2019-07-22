@@ -250,7 +250,6 @@ class TableganSynthesizer:
                 data.append(fake.detach().cpu().numpy())
 
             data = np.concatenate(data, axis=0)
-            print(data[:10])
             data = self.transformer.inverse_transform(data[:n])
             ret.append((epoch, data))
 
