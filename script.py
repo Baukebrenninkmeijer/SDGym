@@ -73,6 +73,7 @@ for synth_name, synthesizer in synthesizers.items():
         z.columns = data.columns
         experiment.log_html(z.head(25).to_html())
 
+        z.columns = [info['name'] for info in meta]
         for id_, info in enumerate(meta):
             if info['type'] in [CATEGORICAL, 'ordinal']:
                 z.iloc[:, id_] = [info['i2s'][x] for x in z.iloc[:, id_].tolist()]
