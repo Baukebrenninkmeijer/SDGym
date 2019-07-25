@@ -171,3 +171,5 @@ Temporary Items
 .apdiskconfig.ini
 config.ini
 samples/
+
+model_checkpoints/
