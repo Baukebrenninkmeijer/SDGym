@@ -221,9 +221,10 @@ class MedganSynthesizer:
                 mu, std = encoder(real)
                 emb = reparameterize(mu, std)
                 rec = decoder(emb, self.transformer.output_info)
-                loss = aeloss(rec, real, self.transformer.output_info)
+                loss = aeloss(rec, real, self.transformer.output_info, mu, std)
                 loss.backward()
-                experiment.log_metric('AELoss', loss)
+                if experiment is not None:
+                    experiment.log_metric('AELoss', loss)
                 optimizerAE.step()
 
         #         test_batch = dataset[:2][0]
@@ -234,8 +235,9 @@ class MedganSynthesizer:
 
         generator = Generator(self.random_dim, self.generator_dims, self.bnDecay).to(self.device)
         discriminator = Discriminator(data_dim, self.discriminator_dims).to(self.device)
-        generator.apply(weights_init_uniform)
-        discriminator.apply(weights_init_uniform)
+
+        # generator.apply(weights_init_uniform)
+        # discriminator.apply(weights_init_uniform)
 
         optimizerG = opt(
             list(generator.parameters()) + list(decoder.parameters()),
