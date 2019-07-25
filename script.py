@@ -48,8 +48,9 @@ if 'tablegan' in arg_synths:
 if 'tgan' in arg_synths:
     synthesizers['tgan'] = TGANSynthesizer(store_epoch=store_epoch)
 if 'medgan' in arg_synths:
-    synthesizers['medgan'] = MedganSynthesizer(store_epoch=store_epoch, pretrain_epoch=50)
+    synthesizers['medgan'] = MedganSynthesizer(store_epoch=store_epoch, pretrain_epoch=10, compress_dims=(200, 100), decompress_dims=(100, 200), batch_size=500)
 
+    
 for synth_name, synthesizer in synthesizers.items():
     synthesizer.init(meta, working_dir)
 
