@@ -74,16 +74,19 @@ class Encoder(Module):
         super(Encoder, self).__init__()
         dim = data_dim
         seq = []
-        for item in list(compress_dims) + [embedding_dim]:
+        for item in list(compress_dims):
             seq += [
                 Linear(dim, item),
                 nn.ReLU()
             ]
             dim = item
         self.seq = Sequential(*seq)
+        self.lin_mu = Linear(dim, embedding_dim)
+        self.lin_std = Linear(dim, embedding_dim)
 
     def forward(self, input):
-        return self.seq(input)
+        l = self.seq(input)
+        return self.lin_mu(l), self.lin_std(l)
 
 
 class Decoder(Module):
@@ -102,39 +105,42 @@ class Decoder(Module):
 
     def forward(self, org_input, output_info, training=False):
         return self.seq(org_input)
+        # if training:
+        #     return self.seq(org_input)
+        # else:
+        #     input = self.seq(org_input)
+        #     st = 0
+        #     output = []
+        #     for item in output_info:
+        #         if item[1] == 'sigmoid':
+        #             ed = st + item[0]
+        #             output.append(sigmoid(input[:, st:ed]))
+        #             st = ed
+        #         elif item[1] == 'softmax':
+        #             ed = st + item[0]
+        #             softmax_out = torch.nn.functional.gumbel_softmax(input[:, st:ed])
+        #             noise = d = torch.randn(item[0]).to("cuda:0") * 0.05
+        #             softmax_smooth = 0.95 * softmax_out + noise * softmax_out
+        #             output.append(softmax_smooth)
+        #             st = ed
+        #     cat = torch.cat(output, dim=1)
+        #     return cat.view(org_input.shape[0], np.sum([x[0] for x in output_info]))
 
 
-#         if training:
-#             return self.seq(org_input)
-#         else:
-#             input = self.seq(org_input)
-#             st = 0
-#             output = []
-#             for item in output_info:
-#                 if item[1] == 'sigmoid':
-#                     ed = st + item[0]
-#                     output.append(sigmoid(input[:, st:ed]))
-#                     st = ed
-#                 elif item[1] == 'softmax':
-#                     ed = st + item[0]
-#                     softmax_out = torch.nn.functional.gumbel_softmax(input[:, st:ed])
-#                     noise = d = torch.randn(item[0]).to("cuda:0") * 0.05
-#                     softmax_smooth = 0.95 * softmax_out + noise * softmax_out
-#                     output.append(softmax_smooth)
-#                     st = ed
-#             cat = torch.cat(output, dim=1)
-#             return cat.view(org_input.shape[0], np.sum([x[0] for x in output_info]))
+def reparameterize(mu, logvar):
+    std = torch.exp(0.5*logvar)
+    eps = torch.randn_like(std)
+    return mu + eps*std
 
 
 def weights_init_uniform(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
+        if hasattr(m, 'bias'):
+            m.bias.data.fill_(0.01)
 
 
-#         m.bias.data.fill_(0.01)
-
-
-def aeloss(fake, real, output_info):
+def aeloss(fake, real, output_info, mu, logvar):
     st = 0
     loss = []
     for item in output_info:
@@ -149,7 +155,10 @@ def aeloss(fake, real, output_info):
             st = ed
         else:
             assert 0
-    return sum(loss) / fake.size()[0]
+
+    reconstruct_loss = sum(loss) / fake.size()[0]
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return reconstruct_loss + KLD
 
 
 class MedganSynthesizer:
@@ -209,8 +218,9 @@ class MedganSynthesizer:
             for id_, data in enumerate(loader):
                 optimizerAE.zero_grad()
                 real = data[0].to(self.device)
-                emb = encoder(real)
-                rec = decoder(emb, self.transformer.output_info, training=True)
+                mu, std = encoder(real)
+                emb = reparameterize(mu, std)
+                rec = decoder(emb, self.transformer.output_info)
                 loss = aeloss(rec, real, self.transformer.output_info)
                 loss.backward()
                 experiment.log_metric('AELoss', loss)
@@ -246,7 +256,7 @@ class MedganSynthesizer:
                 real = data[0].to(self.device)
                 noise = torch.normal(mean=mean, std=std)
                 emb = generator(noise)
-                fake = decoder(emb, self.transformer.output_info)
+                fake = decoder(emb, self.transformer.output_info, training=True)
 
                 optimizerD.zero_grad()
                 y_real = discriminator(real)
